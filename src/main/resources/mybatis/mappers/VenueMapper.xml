@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.unisol.letsplay.mappers.VenueMapper">
+
+
+
+    <select id="findVenueAndCourse" resultType="com.unisol.letsplay.model.VenueCourt">
+
+        select v.venue_name as venueName, v.venue_address as venueAddress, c.court_name as courtName, c.court_img as courtImg from
+            venue v
+                JOIN
+            court c ON v.venue_id=c.venue_id
+                JOIN
+            booking b ON B.court_id=c.court_id
+        WHERE c.game_type=#{gameType} AND
+            b.booking_date=#{bookingDate}
+    </select>
+
+    <select id="findVenueById" resultType="com.unisol.letsplay.model.Venue">
+
+        select * from venue
+        where venue_id=#{venueId}
+
+    </select>
+
+    <select id="findAllCourtsAndGames" resultType="com.unisol.letsplay.model.Venue">
+
+        select * from
+            court c
+                JOIN
+            venue v on c.venue_id=v.venue_id
+        where  v.venue_id=#{venueId}
+
+    </select>
+
+    <insert id="insertVenue" parameterType="com.unisol.letsplay.model.Venue">
+        INSERT INTO venue (organizer_id, venue_address, location, picture_url, phone_number, operational_status)
+        VALUES (#{organizer_id}, #{venue_address}, #{location}, #{picture_url}, #{phone_number}, #{operational_status})
+    </insert>
+
+</mapper>

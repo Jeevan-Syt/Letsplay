@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.unisol.letsplay.mappers.BookingMapper">
+
+    <!-- Insert new booking into the database -->
+    <insert id="saveBooking" parameterType="com.unisol.letsplay.model.Booking">
+        INSERT INTO booking (user_id, court_id, booking_date, start_time, end_time, venue_id, payment_id, booking_status)
+        VALUES (#{user_id}, #{court_id}, #{booking_date}, #{start_time}, #{end_time}, #{venue_id}, #{payment_id}, #{booking_status})
+    </insert>
+
+    <select id="findBookingsByUserId" resultType="com.unisol.letsplay.model.Booking">
+        SELECT * FROM booking WHERE user_id = #{userId}
+    </select>
+
+    <select id="findAllBookingDetailsById" resultType="com.unisol.letsplay.model.BookingDetailsDTO">
+        SELECT b.booking_id, b.user_id, b.court_id, b.booking_date,
+               b.start_time, b.end_time, b.venue_id, b.payment_id,
+               b.booking_status, c.price AS court_price
+        FROM booking b
+                 JOIN court c ON b.court_id = c.court_id
+        WHERE b.booking_id = #{bookingId}
+    </select>
+    <!--
+    <select id="checkSlotAvailability" resultType="int">
+        SELECT COUNT(*)
+        FROM booking
+        WHERE court_id = #{court_id}
+        AND booking_date = #{booking_date}
+        AND ((start_time < #{end_time} AND end_time > #{start_time}))
+    </select>
+    -->
+</mapper>
