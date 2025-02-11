@@ -23,5 +23,7 @@ Provides venue managers with insights into booking trends, revenue generation, a
 Design and Architecture
 
 1.Implements a layered architecture for scalability and maintainability.
+
 2.Utilizes advanced MyBatis SQL mappings for efficient database interactions.
+
 3.Plans to integrate a payment service in future iterations to enhance the end-to-end booking experience.
