@@ -2,6 +2,7 @@ package com.unisol.letsplay.controller;
 
 import com.unisol.letsplay.mappers.VenueMapper;
 import com.unisol.letsplay.model.Booking;
+import com.unisol.letsplay.model.Court;
 import com.unisol.letsplay.model.Venue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,13 @@ public class VenueController {
     @GetMapping
     public List<Venue> getVenueById(@RequestParam("venueId") int venue_id) {
         List<Venue> a = repository.findVenueById(venue_id);
+        return a;
+    }
+
+
+    @GetMapping("/courts")
+    public List<Court> getCourtsAndGamesById(@RequestParam("venueId") int court_id) {
+        List<Court> a = repository.findAllCourtsAndGames(court_id);
         return a;
     }
     @PostMapping("/insert")
