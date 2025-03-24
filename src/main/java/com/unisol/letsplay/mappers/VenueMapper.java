@@ -1,5 +1,6 @@
 package com.unisol.letsplay.mappers;
 
+import com.unisol.letsplay.model.Court;
 import com.unisol.letsplay.model.Venue;
 import com.unisol.letsplay.model.VenueCourt;
 import org.apache.ibatis.annotations.Mapper;
@@ -13,4 +14,5 @@ public interface VenueMapper {
     List<Venue> findVenueById(int venueId);
     void insertVenue(Venue venue);
 
+    List<Court> findAllCourtsAndGames(int courtId);
 }
