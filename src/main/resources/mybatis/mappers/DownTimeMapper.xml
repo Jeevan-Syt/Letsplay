@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.unisol.letsplay.mappers.DownTimeMapper">
+
+    <!-- Insert downtime record -->
+    <insert id="insertDownTime" parameterType="com.unisol.letsplay.model.DownTime">
+        INSERT INTO downtime
+        (downtimeid, venueid, courtid, startdate, enddate, starttime, endtime, repeatmode)
+        VALUES
+            (#{downTimeId}, #{venue_id}, #{court_id}, #{start_date}, #{end_date}, #{start_time}, #{end_time}, #{repeateMode})
+    </insert>
+
+    <!-- Get downtimes for a court in date range -->
+    <select id="getDownTimeByCourtAndDate" resultType="com.unisol.letsplay.model.DownTime">
+        SELECT * FROM downtime
+        WHERE courtid = #{courtId}
+          AND (
+                (#{startDate} BETWEEN startdate AND enddate)
+                OR (#{endDate} BETWEEN startdate AND enddate)
+                OR (startdate &lt;= #{startDate} AND enddate &gt;= #{endDate})
+            )
+    </select>
+
+    <!-- Check time conflict with downtimes -->
+    <select id="isCourtDownDuringTime" resultType="boolean">
+    <![CDATA[
+        SELECT EXISTS (
+            SELECT 1 FROM downtime
+            WHERE court_id = #{courtId}
+              AND #{startDate} BETWEEN start_date AND end_date
+              AND #{startTime} < end_time
+              AND #{endTime} > start_time
+        )
+        ]]>
+</select>
+
+</mapper>
