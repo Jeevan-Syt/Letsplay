@@ -1,19 +1,19 @@
 package com.unisol.letsplay.model;
 
-        public class User {
-        private int user_id;
-        private String username;
-        private String email_id;
-        private String password;
-        private int phone_number;
-        private String user_profilepic;
+public class User {
+    private Integer userId;
+    private String username;
+    private String email;
+    private String password;
+    private String phoneNumber;
+    private String profilePictureUrl;
 
-    public int getUser_id() {
-        return user_id;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser_id(int user_id) {
-        this.user_id = user_id;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getUsername() {
@@ -24,12 +24,12 @@ package com.unisol.letsplay.model;
         this.username = username;
     }
 
-    public String getEmail_id() {
-        return email_id;
+    public String getEmail() {
+        return email;
     }
 
-    public void setEmail_id(String email_id) {
-        this.email_id = email_id;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -40,19 +40,23 @@ package com.unisol.letsplay.model;
         this.password = password;
     }
 
-    public int getPhone_number() {
-        return phone_number;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setPhone_number(int phone_number) {
-        this.phone_number = phone_number;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
-    public String getUser_profilepic() {
-        return user_profilepic;
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
     }
 
-    public void setUser_profilepic(String user_profilepic) {
-        this.user_profilepic = user_profilepic;
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public boolean isValidEmail() {
+        return email != null && email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
     }
 }

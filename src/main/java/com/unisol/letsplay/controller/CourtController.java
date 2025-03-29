@@ -11,7 +11,17 @@ import java.util.List;
 @RequestMapping("/api/court")
 public class CourtController {
     @Autowired
-    private CourtMapper repository;
+    private CourtService courtService;
+
+    @Autowired
+    private CourtMapper courtMapper;
+
+    // Add a new court
+    @PostMapping
+    public ResponseEntity<String> addCourt(@RequestBody Court court) {
+        courtMapper.saveCourt(court);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Court inserted successfully.");
+    }
 
     @GetMapping
     public List<Court> getCourtsAndGamesById(@RequestParam("venueId") int court_id) {
