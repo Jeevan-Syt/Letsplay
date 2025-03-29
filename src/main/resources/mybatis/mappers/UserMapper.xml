@@ -1,10 +1,61 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.unisol.letsplay.mappers.UserMapper">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.unisol.letsplay.repository.UserRepository">
 
-    <select id="findalluser" resultType="com.unisol.letsplay.model.User">
-        select * from user where user_id=#{userparam};
+    <resultMap id="userResultMap" type="com.unisol.letsplay.model.User">
+        <id property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="phoneNumber" column="phone_number"/>
+        <result property="profilePictureUrl" column="profilePictureUrl"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="userResultMap">
+        SELECT * FROM users
     </select>
 
+    <select id="findById" resultMap="userResultMap">
+        SELECT * FROM users WHERE user_id = #{userId}
+    </select>
 
+    <select id="findByEmail" resultMap="userResultMap">
+        SELECT * FROM users WHERE email = #{email}
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT COUNT(1) > 0 FROM users WHERE email = #{email}
+    </select>
+
+    <insert id="save" parameterType="com.unisol.letsplay.model.User"
+            useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
+        INSERT INTO users
+            (username, email, password, phone_number, profilePictureUrl)
+        VALUES
+            (#{username}, #{email}, #{password}, #{phoneNumber}, #{profilePictureUrl})
+    </insert>
+
+    <update id="update" parameterType="com.unisol.letsplay.model.User">
+        UPDATE users SET
+                         username = #{username},
+                         phone_number = #{phoneNumber},
+                         profilePictureUrl = #{profilePictureUrl}
+        WHERE user_id = #{userId}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM users WHERE user_id = #{userId}
+    </delete>
+
+    <select id="findByCriteria" resultMap="userResultMap">
+        SELECT * FROM users
+        <where>
+            <if test="username != null">
+                AND username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="email != null">
+                AND email LIKE CONCAT('%', #{email}, '%')
+            </if>
+        </where>
+    </select>
 </mapper>
