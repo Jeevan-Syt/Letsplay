@@ -1,7 +1,6 @@
 package com.unisol.letsplay.controller;
 
-import com.unisol.letsplay.mappers.VenueMapper;
-import com.unisol.letsplay.model.Booking;
+import com.unisol.letsplay.repository.VenueMapper;
 import com.unisol.letsplay.model.Venue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

@@ -1,107 +1,148 @@
 package com.unisol.letsplay.service;
 
-import com.unisol.letsplay.mappers.CourtMapper;
-import com.unisol.letsplay.mappers.DownTimeMapper;
+import com.unisol.letsplay.exception.InvalidUserDataException;
+import com.unisol.letsplay.model.TimeRange;
+import com.unisol.letsplay.repository.CourtMapper;
 import com.unisol.letsplay.model.Booking;
 import com.unisol.letsplay.model.Court;
+import com.unisol.letsplay.utils.DateTimeUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.CollectionUtils;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 
+import static com.unisol.letsplay.utils.DateTimeUtils.parseTimeString;
+
 @Service
+@Slf4j
 public class CourtService {
 
     @Autowired
     private CourtMapper courtMapper;
 
     @Autowired
-    private DownTimeMapper downTimeMapper;
+    private DownTimeService downTimeService;
 
-    public ResponseEntity<Map<String, Object>> checkAvailability(int courtId, String date, String startTime, String endTime) {
+    public Map<LocalDate, List<TimeRange>> checkAvailability(int courtId, String startTimestamp, String endTimestamp) {
         try {
-            // Validate parameters
-            if (date == null || startTime == null || endTime == null) {
-                return createErrorResponse("Date, startTime and endTime are all required", HttpStatus.BAD_REQUEST);
-            }
-
             // Parse inputs early to validate time order
-            LocalTime bookingStartTime = parseTimeString(startTime);
-            LocalTime bookingEndTime = parseTimeString(endTime);
-
-            // Validate time order and duration
-            if (!bookingStartTime.isBefore(bookingEndTime)) {
-                return createErrorResponse("Start time must be before end time", HttpStatus.BAD_REQUEST);
-            }
-            if (bookingStartTime.equals(bookingEndTime)) {
-                return createErrorResponse("Booking duration must be greater than zero", HttpStatus.BAD_REQUEST);
+            LocalDateTime startTimeStamp = parseTimeString(startTimestamp);
+            LocalDateTime endTimeStamp;
+            if(endTimestamp != null) {
+                endTimeStamp = parseTimeString(endTimestamp);
+                if(endTimeStamp.isBefore(startTimeStamp.plusHours(1))) {
+                    throw new InvalidUserDataException("End time stamp should be after 1hour of Start time");
+                };
+            } else {
+                //When end time is not specified it will take max 7 days period
+                endTimeStamp = startTimeStamp.plusDays(7);
             }
 
             // Fetch court
             Court court = courtMapper.findCourtById(courtId);
             if (court == null) {
-                return createErrorResponse("Court not found", HttpStatus.NOT_FOUND);
+                throw new InvalidUserDataException("Court not found");
             }
 
-            LocalDate bookingDate = LocalDate.parse(date);
+            Map<LocalDate, List<TimeRange>> availableTimeSlotsByDay = new HashMap<>();
+            for (LocalDateTime dateTime = startTimeStamp; !dateTime.isAfter(endTimeStamp); dateTime = dateTime.plusDays(1)) {
+                LocalTime startTime = startTimeStamp.toLocalTime();
+                LocalTime endTime = endTimeStamp.toLocalTime();
+                LocalTime dayStartTime = LocalTime.of(0, 0);
+                LocalTime dayEndTime = LocalTime.of(23, 59);
 
-            // Convert court times to LocalTime
-            LocalTime courtOpenTime = convertToLocalTime(court.getOpenTime());
-            LocalTime courtCloseTime = convertToLocalTime(court.getCloseTime());
+                LocalDate startDate = startTimeStamp.toLocalDate();
+                LocalDate endDate = endTimeStamp.toLocalDate();
 
-            // Check closed days
-            if (isCourtClosed(court, bookingDate)) {
-                return createResponse(false, "Court is closed on " + bookingDate.getDayOfWeek());
+                if (startDate.equals(endDate)) {
+                    List<TimeRange> availableSlots = getAvailableTimeRange(court, startDate, startTime, endTime);
+                    if (availableSlots != null) {
+                        availableTimeSlotsByDay.put(startDate, availableSlots);
+                    }
+                    continue;
+                }
+
+                LocalDate currentDate = dateTime.toLocalDate();
+                if (currentDate.equals(startTimeStamp.toLocalDate())) {
+                    //call(currentDate, startTime, 24:00)
+                    List<TimeRange> availableSlots = getAvailableTimeRange(court, startDate, startTime, dayEndTime);
+                    if (availableSlots != null) {
+                        availableTimeSlotsByDay.put(currentDate, availableSlots);
+                    }
+                    continue;
+                }
+                if (currentDate.equals(endTimeStamp.toLocalDate())) {
+                    //call(currentDate, 00:00, endTime)
+                    List<TimeRange> availableSlots = getAvailableTimeRange(court, startDate, dayStartTime, endTime);
+                    if (availableSlots != null) {
+                        availableTimeSlotsByDay.put(currentDate, availableSlots);
+                    }
+                    continue;
+                }
+                List<TimeRange> availableSlots = getAvailableTimeRange(court, currentDate, dayStartTime, dayEndTime);
+                if (availableSlots != null) {
+                    availableTimeSlotsByDay.put(currentDate, availableSlots);
+                }
             }
-
-            // Check operational hours
-            if (!isWithinOperationalHours(courtOpenTime, courtCloseTime, bookingStartTime, bookingEndTime)) {
-                return createResponse(false,
-                        String.format("Court operates from %s to %s", courtOpenTime, courtCloseTime));
-            }
-
-            // Check bookings
-            List<Booking> existingBookings = getBookingsSafely(courtId, date);
-            if (hasBookingConflict(bookingStartTime, bookingEndTime, existingBookings)) {
-                List<Map<String, Object>> conflicts = getBookingConflicts(bookingStartTime, bookingEndTime, existingBookings);
-                return createConflictResponse(conflicts);
-            }
-
-            // Check downtime
-            if (hasDowntimeConflict(courtId, bookingDate, bookingStartTime, bookingEndTime)) {
-                return createResponse(false, "Court is under maintenance");
-            }
-
-            // All checks passed
-            return createSuccessResponse(court, courtOpenTime, courtCloseTime);
-
-        } catch (DateTimeParseException e) {
-            return createErrorResponse("Invalid time format. Use HH:mm or HH:mm:ss", HttpStatus.BAD_REQUEST);
+            return availableTimeSlotsByDay;
         } catch (Exception e) {
-            return createErrorResponse("Internal server error: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new InvalidUserDataException("Problem"); //TODO:- Here we need some good exception to be thrown
         }
+    }
+
+    private List<TimeRange> getAvailableTimeRange(Court court, LocalDate requestedDate, LocalTime requestedStartTime, LocalTime requestedEndTime) {
+
+        // Convert court times to LocalTime
+        LocalTime courtOpenTime = convertToLocalTime(court.getOpenTime());
+        LocalTime courtCloseTime = convertToLocalTime(court.getCloseTime());
+
+        // Check closed days
+        if (isCourtClosed(court, requestedDate)) {
+            return null;
+        }
+
+        // Check operational hours
+        LocalTime adjustedStart = requestedStartTime.isBefore(courtOpenTime) ? courtOpenTime : requestedStartTime;
+        LocalTime adjustedEnd = requestedEndTime.isAfter(courtCloseTime) ? courtCloseTime : requestedEndTime;
+
+        if (adjustedStart.isBefore(adjustedEnd)) {
+            return List.of(new TimeRange(adjustedStart, adjustedEnd));
+        }
+
+//        // Check downtime
+//        if (hasDowntimeConflict(courtId, bookingDate, bookingStartTime, bookingEndTime)) {
+//            return createResponse(false, "Court is under maintenance");
+//        }
+
+
+//        // Check bookings
+//            List<Booking> existingBookings = getBookingsSafely(courtId, date);
+//            if (hasBookingConflict(bookingStartTime, bookingEndTime, existingBookings)) {
+//                List<Map<String, Object>> conflicts = getBookingConflicts(bookingStartTime, bookingEndTime, existingBookings);
+//                return createConflictResponse(conflicts);
+//            }
+
+
+        return null;
     }
 
     // ========== Helper Methods ==========
 
-    private LocalTime parseTimeString(String time) throws DateTimeParseException {
-        String normalized = time.trim();
-        if (normalized.length() == 5) { // HH:mm format
-            normalized += ":00";
-        }
-        return LocalTime.parse(normalized);
-    }
-
-    private LocalTime convertToLocalTime(LocalDateTime dateTime) {
-        return dateTime != null ? dateTime.toLocalTime() : LocalTime.MIN;
+    private LocalTime convertToLocalTime(Timestamp timestamp) {
+        return timestamp != null ? timestamp.toLocalDateTime().toLocalTime() : LocalTime.MIN;
     }
 
     private Time convertToSqlTime(LocalTime localTime) {
@@ -113,7 +154,6 @@ public class CourtService {
             System.out.println("DEBUG: Fetching bookings for courtId=" + courtId + ", date=" + date);
             List<Booking> bookings = courtMapper.getBookings(courtId, date);
 
-            // Debug logging
             if (bookings.isEmpty()) {
                 System.out.println("DEBUG: No bookings found");
             } else {
@@ -166,23 +206,19 @@ public class CourtService {
         return conflict;
     }
 
-
     private boolean isTimeOverlap(LocalTime newStart, LocalTime newEnd,
                                   LocalTime existingStart, LocalTime existingEnd) {
-        // The new booking overlaps with existing if:
-        // 1. New start is before existing end AND
-        // 2. New end is after existing start
         return newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
     }
 
-    private boolean isCourtClosed(Court court, LocalDate date) {
-        if (court.getClosedDays() == null || court.getClosedDays().trim().isEmpty()) {
+    private boolean isCourtClosed(Court court, LocalDate expectedDate) {
+        if (StringUtils.isBlank(court.getClosedDays())) {
             return false;
         }
-        String dayOfWeek = date.getDayOfWeek().toString().toUpperCase();
+        String expectedDayOfWeek = expectedDate.getDayOfWeek().toString().toUpperCase();
         return Arrays.stream(court.getClosedDays().toUpperCase().split(","))
                 .map(String::trim)
-                .anyMatch(day -> day.equals(dayOfWeek));
+                .anyMatch(day -> day.equals(expectedDayOfWeek));
     }
 
     private boolean isWithinOperationalHours(LocalTime courtOpen, LocalTime courtClose,
@@ -193,14 +229,14 @@ public class CourtService {
     private boolean hasDowntimeConflict(int courtId, LocalDate date,
                                         LocalTime startTime, LocalTime endTime) {
         try {
-            return downTimeMapper.isCourtDownDuringTime(
+            return downTimeService.isCourtDownDuringTime(
                     courtId,
-                    java.sql.Date.valueOf(date),
-                    java.sql.Date.valueOf(date),
-                    convertToSqlTime(startTime),
-                    convertToSqlTime(endTime)
+                    date,
+                    startTime,
+                    endTime
             );
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
