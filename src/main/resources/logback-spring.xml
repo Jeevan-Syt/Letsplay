@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--<configuration>-->
+
+    <!-- Scan for changes in the logback file -->
+    <configuration scan="true" scanPeriod="30 seconds">
+
+        <!-- Define log file name and directory -->
+        <property name="LOG_PATH" value="logs" />
+        <property name="LOG_FILE" value="${LOG_PATH}/application.log" />
+
+        <!-- Console Appender (Logs to Console) -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <!-- File Appender (Logs to File with Rotation) -->
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <!-- Daily log rotation -->
+                <fileNamePattern>${LOG_PATH}/application-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory> <!-- Keep logs for 7 days -->
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <!-- Async Appender (Improves Performance) -->
+        <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>512</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <appender-ref ref="FILE" />
+        </appender>
+
+    <!-- Restrict Logging to Only Specific Packages -->
+    <root level="OFF">
+        <!-- This turns off all default logging -->
+    </root>
+
+        <!-- Specific Logging Levels for Packages -->
+    <logger name="org.springframework" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <logger name="com.unisol" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    </configuration>

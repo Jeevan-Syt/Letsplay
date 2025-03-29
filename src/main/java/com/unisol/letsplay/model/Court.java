@@ -6,15 +6,16 @@ public class Court {
     private int court_id;
     private String court_name;
     private String court_img;
-    private int venue_id;           ////foreign key of venue
+    private int venue_id;
     private String other_details;
     private double price;
-    private String game_type;
-    private Timestamp open_time;
-    private Timestamp close_time;
-    private String closed_days;
+    private String gameType;
+    private Timestamp openTime;
+    private Timestamp closeTime;
+    private String closedDays;
     private boolean operational_status;
 
+    // Getters and Setters (same as before)
     public int getCourt_id() {
         return court_id;
     }
@@ -63,36 +64,36 @@ public class Court {
         this.price = price;
     }
 
-    public String getGame_type() {
-        return game_type;
+    public String getGameType() {
+        return gameType;
     }
 
-    public void setGame_type(String game_type) {
-        this.game_type = game_type;
+    public void setGameType(String gameType) {
+        this.gameType = gameType;
     }
 
-    public Timestamp getOpen_time() {
-        return open_time;
+    public Timestamp getOpenTime() {
+        return openTime;
     }
 
-    public void setOpen_time(Timestamp open_time) {
-        this.open_time = open_time;
+    public void setOpenTime(Timestamp openTime) {
+        this.openTime = openTime;
     }
 
-    public Timestamp getClose_time() {
-        return close_time;
+    public Timestamp getCloseTime() {
+        return closeTime;
     }
 
-    public void setClose_time(Timestamp close_time) {
-        this.close_time = close_time;
+    public void setCloseTime(Timestamp closeTime) {
+        this.closeTime = closeTime;
     }
 
-    public String getClosed_days() {
-        return closed_days;
+    public String getClosedDays() { //TODO:- it should be closed day of the week
+        return closedDays;
     }
 
-    public void setClosed_days(String closed_days) {
-        this.closed_days = closed_days;
+    public void setClosedDays(String closedDays) {
+        this.closedDays = closedDays;
     }
 
     public boolean isOperational_status() {

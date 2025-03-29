@@ -1,25 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.unisol.letsplay.mappers.CourtMapper">
+<mapper namespace="com.unisol.letsplay.repository.CourtMapper">
 
-    <!-- Fetch all courts by Venue ID -->
     <select id="findAllCourtsAndGames" resultType="com.unisol.letsplay.model.Court">
         SELECT * FROM court
         WHERE venue_id = #{venue_id}
     </select>
 
-    <!-- Insert a new court -->
     <insert id="saveCourt">
         INSERT INTO court (court_name, court_img, venue_id, other_details, price, gameType, openTime, closeTime, closedDays)
         VALUES (#{court_name}, #{court_img}, #{venue_id}, #{other_details}, #{price}, #{gameType}, #{openTime}, #{closeTime}, #{closedDays})
     </insert>
 
-    <!-- Fetch court details by Court ID -->
     <select id="findCourtById" parameterType="int" resultType="com.unisol.letsplay.model.Court">
         SELECT * FROM court WHERE court_id = #{courtId}
     </select>
 
-    <!-- Update court details -->
     <update id="updateCourt" parameterType="com.unisol.letsplay.model.Court">
         UPDATE court
         SET court_name = #{court_name},
@@ -34,22 +30,19 @@
         WHERE court_id = #{court_id}
     </update>
 
-    <!-- Get Court Operational Status -->
     <select id="getOperationalStatus" resultType="boolean">
         SELECT operational_status FROM court WHERE court_id = #{court_id}
     </select>
 
-    <!-- Get court timings -->
     <select id="getCourtTimings" resultType="com.unisol.letsplay.model.Court">
-        SELECT openTime, closeTime FROM court WHERE court_id = #{courtId}
+        SELECT court_id, openTime, closeTime FROM court WHERE court_id = #{courtId}
     </select>
 
-    <!-- Check if the court is under maintenance -->
-    <select id="isInDowntime" resultType="boolean">
+    <select id="isCourtDownDuringTime" resultType="boolean">
     <![CDATA[
         SELECT EXISTS (
             SELECT 1 FROM court_downtime
-            WHERE court_id = #{court_id}
+            WHERE court_id = #{courtId}
               AND #{date} BETWEEN start_date AND end_date
               AND #{startTime} < end_time
               AND #{endTime} > start_time
@@ -57,7 +50,6 @@
         ]]>
     </select>
 
-    <!-- Fetch all bookings for the court on the given date -->
     <select id="getBookings" resultType="com.unisol.letsplay.model.Booking">
         SELECT
             booking_id,
@@ -75,5 +67,4 @@
           AND booking_status = 'booked'
         ORDER BY start_time ASC
     </select>
-
 </mapper>
